@@ -1,6 +1,11 @@
 import {todolistsAPI, TodolistType} from '../../api/todolists-api'
 import {Dispatch} from 'redux'
-import {setStatus, StatusType} from "../../app/app-reducer";
+import {
+    ErrorType,
+    setErrorAC,
+    setStatusAC,
+    StatusType
+} from "../../app/app-reducer";
 
 const initialState: Array<TodolistDomainType> = []
 
@@ -54,11 +59,11 @@ export const setTodolistsAC = (todolists: Array<TodolistType>) => ({
 // thunks
 export const fetchTodolistsTC = () => {
     return (dispatch: Dispatch<ActionsType>) => {
-        dispatch(setStatus('loading'))
+        dispatch(setStatusAC('loading'))
         todolistsAPI.getTodolists()
             .then((res) => {
                 dispatch(setTodolistsAC(res.data))
-                dispatch(setStatus('succeeded'))
+                dispatch(setStatusAC('succeeded'))
             })
     }
 }
@@ -74,7 +79,13 @@ export const addTodolistTC = (title: string) => {
     return (dispatch: Dispatch<ActionsType>) => {
         todolistsAPI.createTodolist(title)
             .then((res) => {
-                dispatch(addTodolistAC(res.data.data.item))
+                if (res.data.resultCode === 0) {
+                    dispatch(addTodolistAC(res.data.data.item))
+                    dispatch(setStatusAC('succeeded'))
+                } else {
+                    dispatch(setErrorAC(res.data.messages[0]))
+                    dispatch(setStatusAC('failed'))
+                }
             })
     }
 }
@@ -98,6 +109,7 @@ type ActionsType =
     | ReturnType<typeof changeTodolistFilterAC>
     | SetTodolistsActionType
     | StatusType
+    | ErrorType
 export type FilterValuesType = 'all' | 'active' | 'completed';
 export type TodolistDomainType = TodolistType & {
     filter: FilterValuesType
